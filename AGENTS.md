@@ -82,6 +82,9 @@ After making changes:
 - Explain what was done
 - Explain how to test it
 
+When asked for a PR description:
+- Present it in Markdown
+
 ## Commands
 - Run API: uvicorn app.main:app --reload
 - Lint (if present): ruff check .
