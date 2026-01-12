@@ -6,7 +6,7 @@ Backend service for LearnAI.
 
 1. Create and activate a virtual environment.
 2. Install dependencies.
-3. Configure environment variables in `.env`.
+3. Copy `.env.example` to `.env` and set required environment variables.
 
 ## Development
 
