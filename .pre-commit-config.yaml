@@ -13,3 +13,11 @@ repos:
     rev: v1.11.2
     hooks:
       - id: mypy
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: pytest tests/unit tests/local
+        language: system
+        pass_filenames: false
+        stages: [commit, push]

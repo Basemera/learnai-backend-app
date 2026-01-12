@@ -35,3 +35,5 @@ Format code:
 
 Set up pre-commit hooks:
 `pre-commit install`
+
+Pre-commit will block commits and pushes if linting, mypy, or tests fail.
