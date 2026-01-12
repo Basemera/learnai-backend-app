@@ -15,7 +15,7 @@ def simplify_text(payload: TextRequest) -> TextResponse:
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"AI request failed. {str(exc)}") from exc
+        raise HTTPException(status_code=500, detail="AI request failed.") from exc
     return TextResponse(result=result)
 
 
@@ -27,5 +27,5 @@ def explain_text(payload: TextRequest) -> TextResponse:
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"AI request failed. {str(exc)}") from exc
+        raise HTTPException(status_code=500, detail="AI request failed.") from exc
     return TextResponse(result=result)

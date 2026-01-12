@@ -14,12 +14,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(ai_router, prefix="/ai", tags=["AI"])
+app.include_router(ai_router)
 
 
 @app.get("/health")
 def health_check() -> dict:
     return {"status": "ok"}
-
-
-app.include_router(ai_router)
