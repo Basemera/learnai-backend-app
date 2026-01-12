@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, cast
 
 try:
     from openai import OpenAI
@@ -22,7 +22,7 @@ class OpenAIService:
             model=self.model,
             input=prompt,
         )
-        return response.output_text
+        return cast(str, response.output_text)
 
     def simplify_text(self, text: str) -> str:
         prompt = (
