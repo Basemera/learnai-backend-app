@@ -89,6 +89,9 @@ When asked for a PR description:
 After committing and pushing:
 - Add or update the PR description in `pr_description.md` to reflect the latest changes
 
+When working on PRs:
+- Merging is not allowed if CI fails
+
 ## Commands
 - Run API: uvicorn app.main:app --reload
 - Lint (if present): ruff check .

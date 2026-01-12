@@ -1,3 +1,5 @@
+import sys
+from types import SimpleNamespace
 from typing import Optional
 
 import pytest
@@ -35,7 +37,7 @@ def test_openai_service_requires_api_key(monkeypatch) -> None:
 def test_simplify_text_builds_prompt(monkeypatch) -> None:
     dummy_client = DummyClient()
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setattr("app.services.openai_service.OpenAI", lambda api_key: dummy_client)
+    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=lambda api_key: dummy_client))
 
     service = OpenAIService()
     result = service.simplify_text("hello")
@@ -50,7 +52,7 @@ def test_simplify_text_builds_prompt(monkeypatch) -> None:
 def test_explain_text_builds_prompt(monkeypatch) -> None:
     dummy_client = DummyClient()
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    monkeypatch.setattr("app.services.openai_service.OpenAI", lambda api_key: dummy_client)
+    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=lambda api_key: dummy_client))
 
     service = OpenAIService()
     result = service.explain_text("hello")

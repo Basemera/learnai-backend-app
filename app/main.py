@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.ai import router as ai_router
 
-
 app = FastAPI(title="LearnAI API")
 
 app.add_middleware(

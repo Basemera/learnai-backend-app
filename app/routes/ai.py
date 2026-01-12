@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException
 from app.schemas.ai import TextRequest, TextResponse
 from app.services.openai_service import get_openai_service
 
-
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 
