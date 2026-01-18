@@ -1,20 +1,17 @@
 import os
 from typing import Optional
 
-try:
-    from openai import OpenAI
-except ImportError:  # pragma: no cover - handled in environments without openai
-    OpenAI = None
-
 
 class OpenAIService:
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini") -> None:
-        if OpenAI is None:
-            raise ValueError("openai package is not installed.")
+        try:
+            from openai import OpenAI as OpenAIClient
+        except ImportError as exc:  # pragma: no cover - handled in environments without openai
+            raise ValueError("openai package is not installed.") from exc
         api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
             raise ValueError("OPENAI_API_KEY is not set.")
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAIClient(api_key=api_key)
         self.model = model
 
     def _call_model(self, prompt: str) -> str:
