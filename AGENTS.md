@@ -5,6 +5,7 @@
 - Avoid destructive git commands unless explicitly requested.
 - Keep changes minimal and scoped to the request.
 - Ask for clarification when requirements are ambiguous.
+- Always branch off `main` and pull the latest `main` before branching.
 
 # LearnAI — Codex Instructions
 
