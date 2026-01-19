@@ -17,3 +17,7 @@ pr_description.md
 # Editor
 .idea/
 .vscode/
+# Local data
+data/
+uploads/
+*.pdf

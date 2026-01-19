@@ -23,3 +23,10 @@ class BookDetails(BaseModel):
     word_count: Optional[int] = Field(None, ge=1)
     total_chunks: Optional[int] = Field(None, ge=0)
     created_at: Optional[datetime] = None
+
+
+class BookReadResponse(BaseModel):
+    id: str
+    text: str
+    word_count: int
+    total_chunks: int
