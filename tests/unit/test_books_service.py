@@ -12,7 +12,9 @@ def test_upload_book_persists_metadata(tmp_path: Path) -> None:
     source.write_bytes(b"%PDF-1.4 fake content")
 
     service = BookService(metadata_path=metadata_path, uploads_dir=uploads_dir)
-    service._extract_pdf_text = lambda path: ("hello world", 3)  # type: ignore[assignment]
+    service._extract_pdf_text = (  # type: ignore[assignment]
+        lambda path, preserve_format=False: ("hello world", 3)
+    )
 
     details = service.upload_book(
         file_path=str(source),
@@ -34,7 +36,9 @@ def test_list_and_get_books(tmp_path: Path) -> None:
     source.write_bytes(b"fake epub")
 
     service = BookService(metadata_path=metadata_path, uploads_dir=uploads_dir)
-    service._extract_epub_text = lambda path: ("word " * 50, None)  # type: ignore[assignment]
+    service._extract_epub_text = (  # type: ignore[assignment]
+        lambda path, preserve_format=False: ("word " * 50, None)
+    )
 
     details = service.upload_book(file_path=str(source), title="Epub Book")
     items = service.list_books()
@@ -64,7 +68,9 @@ def test_read_book_returns_text_counts(tmp_path: Path) -> None:
     source.write_bytes(b"%PDF-1.4 fake content")
 
     service = BookService(metadata_path=metadata_path, uploads_dir=uploads_dir)
-    service._extract_pdf_text = lambda path: ("one two three four", 2)  # type: ignore[assignment]
+    service._extract_pdf_text = (  # type: ignore[assignment]
+        lambda path, preserve_format=False: ("one two three four", 2)
+    )
 
     details = service.upload_book(file_path=str(source), title="Count Book")
     text, word_count, total_chunks = service.read_book(details.id)

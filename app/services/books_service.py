@@ -35,7 +35,11 @@ class BookService:
         if not file_path:
             raise ValueError("Book file path is missing.")
         file_format = record.get("format") or self._detect_format(Path(file_path))
-        text, _page_count = self._extract_text(Path(file_path), file_format)
+        text, _page_count = self._extract_text(
+            Path(file_path),
+            file_format,
+            preserve_format=True,
+        )
         word_count = self._count_words(text)
         total_chunks = self._count_chunks(text)
         return text, word_count, total_chunks
@@ -57,7 +61,11 @@ class BookService:
         destination = self.uploads_dir / f"{book_id}{source_path.suffix.lower()}"
         shutil.copyfile(source_path, destination)
 
-        text, page_count = self._extract_text(destination, file_format)
+        text, page_count = self._extract_text(
+            destination,
+            file_format,
+            preserve_format=False,
+        )
         word_count = self._count_words(text)
         total_chunks = self._count_chunks(text)
 
@@ -89,14 +97,19 @@ class BookService:
             return "epub"
         raise ValueError("Only PDF and EPUB formats are supported.")
 
-    def _extract_text(self, path: Path, file_format: str) -> tuple[str, Optional[int]]:
+    def _extract_text(
+        self,
+        path: Path,
+        file_format: str,
+        preserve_format: bool = False,
+    ) -> tuple[str, Optional[int]]:
         if file_format == "pdf":
-            return self._extract_pdf_text(path)
+            return self._extract_pdf_text(path, preserve_format=preserve_format)
         if file_format == "epub":
-            return self._extract_epub_text(path)
+            return self._extract_epub_text(path, preserve_format=preserve_format)
         raise ValueError("Unsupported format.")
 
-    def _extract_pdf_text(self, path: Path) -> tuple[str, Optional[int]]:
+    def _extract_pdf_text(self, path: Path, preserve_format: bool = False) -> tuple[str, Optional[int]]:
         try:
             import pdfplumber
         except ImportError as exc:
@@ -104,12 +117,26 @@ class BookService:
 
         texts: List[str] = []
         with pdfplumber.open(path) as pdf:
-            for page in pdf.pages:
-                texts.append(page.extract_text() or "")
+            for page_number, page in enumerate(pdf.pages, start=1):
+                if preserve_format:
+                    try:
+                        page_text = page.extract_text(
+                            layout=True,
+                            x_tolerance=2,
+                            y_tolerance=2,
+                        ) or ""
+                    except TypeError:
+                        page_text = page.extract_text() or ""
+                    if self._looks_unspaced(page_text):
+                        page_text = self._extract_pdf_words(page)
+                    page_text = self._normalize_bullets(page_text)
+                    texts.append(f"--- Page {page_number} ---\n{page_text}".rstrip())
+                else:
+                    texts.append(page.extract_text() or "")
             page_count = len(pdf.pages)
         return "\n".join(texts).strip(), page_count
 
-    def _extract_epub_text(self, path: Path) -> tuple[str, Optional[int]]:
+    def _extract_epub_text(self, path: Path, preserve_format: bool = False) -> tuple[str, Optional[int]]:
         try:
             from ebooklib import ITEM_DOCUMENT, epub
         except ImportError as exc:
@@ -119,13 +146,48 @@ class BookService:
         texts: List[str] = []
         for item in book.get_items_of_type(ITEM_DOCUMENT):
             content = item.get_content().decode("utf-8", errors="ignore")
-            texts.append(self._strip_html(content))
+            if preserve_format:
+                texts.append(content)
+            else:
+                texts.append(self._strip_html(content))
         return "\n".join(texts).strip(), None
 
     def _strip_html(self, content: str) -> str:
         text = re.sub(r"<[^>]+>", " ", content)
         text = unescape(text)
         return re.sub(r"\s+", " ", text).strip()
+
+    def _looks_unspaced(self, text: str, min_length: int = 200) -> bool:
+        if not text or len(text) < min_length:
+            return False
+        space_ratio = text.count(" ") / max(len(text), 1)
+        return space_ratio < 0.01
+
+    def _extract_pdf_words(self, page: Any) -> str:
+        words = page.extract_words(use_text_flow=True)
+        if not words:
+            return ""
+        lines: List[List[dict]] = []
+        for word in words:
+            if not lines:
+                lines.append([word])
+                continue
+            last_line = lines[-1]
+            if abs(word["top"] - last_line[-1]["top"]) <= 3:
+                last_line.append(word)
+            else:
+                lines.append([word])
+        rendered_lines = [" ".join(item["text"] for item in line) for line in lines]
+        return "\n".join(rendered_lines)
+
+    def _normalize_bullets(self, text: str) -> str:
+        if not text:
+            return text
+        text = re.sub(r"(?<!^)(?<!\n)(?=[•●○])", "\n", text)
+        text = re.sub(r"(?<!^)(?<!\n)[ \t]*([•●○])", r"\n\1", text)
+        text = re.sub(r"([•●○])(?!\s)", r"\1 ", text)
+        text = re.sub(r"(?<!^)(\s+-\s+)", r"\n\1", text)
+        return text
 
     def _count_words(self, text: str) -> int:
         if not text:
