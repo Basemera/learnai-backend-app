@@ -3,10 +3,11 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, BackgroundTasks
 
 from app.schemas.books import BookDetails, BookListItem, BookReadResponse
 from app.services.books_service import get_books_service
+from app.services.embedding_service import get_embeddings_service
 
 router = APIRouter(prefix="/books", tags=["books"])
 
@@ -45,6 +46,7 @@ def read_book(book_id: str) -> BookReadResponse:
 
 @router.post("/upload", response_model=BookDetails)
 def upload_book(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     title: str = Form(...),
     author: Optional[str] = Form(None),
@@ -58,13 +60,16 @@ def upload_book(
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             shutil.copyfileobj(file.file, temp_file)
             temp_path = temp_file.name
-        return service.upload_book(
+        details = service.upload_book(
             file_path=temp_path,
             title=title,
             author=author,
             language=language,
             description=description,
         )
+        embedding_service = get_embeddings_service()
+        background_tasks.add_task(embedding_service.index_book, details.id)
+        return details
     except FileNotFoundError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ValueError as exc:
@@ -72,3 +77,4 @@ def upload_book(
     finally:
         if temp_path:
             Path(temp_path).unlink(missing_ok=True)
+
