@@ -2,25 +2,33 @@ import shutil
 import tempfile
 from pathlib import Path
 from typing import List, Optional
+from app.repositories.books_repository import BooksRepository
+from sqlalchemy.orm import Session
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, BackgroundTasks
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, BackgroundTasks, Depends
 
 from app.schemas.books import BookDetails, BookListItem, BookReadResponse
-from app.services.books_service import get_books_service
-from app.services.embedding_service import get_embeddings_service
+from app.services.books_service import BookService, get_books_service
+from app.services.embedding_service import EmbeddingsService, get_embeddings_service
+from app.db import get_db
 
 router = APIRouter(prefix="/books", tags=["books"])
 
+def get_book_service(db: Session = Depends(get_db)) -> BookService:
+    repo = BooksRepository(db)
+    return BookService(repo=repo)
+
+def get_embedding_service(db: Session = Depends(get_db)) -> EmbeddingsService:
+    repo = BooksRepository(db)
+    return EmbeddingsService(repo=repo)
 
 @router.get("/", response_model=List[BookListItem])
-def get_book() -> List[BookListItem]:
-    service = get_books_service()
+def get_book(service: BookService = Depends(get_book_service)) -> List[BookListItem]:
     return service.list_books()
 
 
 @router.get("/{book_id}", response_model=BookDetails)
-def get_book_details(book_id: str) -> BookDetails:
-    service = get_books_service()
+def get_book_details(book_id: str, service: BookService = Depends(get_book_service)) -> BookDetails:
     try:
         return service.get_book(book_id)
     except ValueError as exc:
@@ -28,8 +36,7 @@ def get_book_details(book_id: str) -> BookDetails:
 
 
 @router.post("/{book_id}/read", response_model=BookReadResponse)
-def read_book(book_id: str) -> BookReadResponse:
-    service = get_books_service()
+def read_book(book_id: str, service: BookService = Depends(get_book_service)) -> BookReadResponse:
     try:
         text, word_count, total_chunks = service.read_book(book_id)
     except FileNotFoundError as exc:
@@ -52,8 +59,9 @@ def upload_book(
     author: Optional[str] = Form(None),
     language: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
+    service: BookService = Depends(get_book_service),
+    embedding_service: EmbeddingsService = Depends(get_embedding_service),
 ) -> BookDetails:
-    service = get_books_service()
     suffix = Path(file.filename or "").suffix
     temp_path = None
     try:
@@ -67,7 +75,6 @@ def upload_book(
             language=language,
             description=description,
         )
-        embedding_service = get_embeddings_service()
         background_tasks.add_task(embedding_service.index_book, details.id)
         return details
     except FileNotFoundError as exc:

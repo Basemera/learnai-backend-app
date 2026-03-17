@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from app.services.openai_service import get_openai_service
+from app.repositories.books_repository import BooksRepository
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,7 @@ class EmbeddingChunk:
 class EmbeddingsService:
     def __init__(
         self,
+        repo: BooksRepository,
         metadata_path: Optional[Path] = None,
         embeddings_dir: Optional[Path] = None,
         embedding_model: str = "text-embedding-3-small",
@@ -31,6 +33,7 @@ class EmbeddingsService:
         self.chunk_size_words = chunk_size_words
         self.overlap_words = overlap_words
         self.batch_size = batch_size
+        self.repo = repo
 
     def index_book(self, book_id: str) -> None:
         """
@@ -38,8 +41,8 @@ class EmbeddingsService:
           data/embeddings/{book_id}.json
         with status: pending -> ready/failed.
         """
-        record = self._find_book_record(book_id)
-        file_path = record.get("file_path")
+        record = self.repo.get_book(book_id)
+        file_path = record.file_path if record else None
         if not file_path:
             # Can't proceed; write failed status so callers can see it.
             self._write_embeddings_file(book_id, status="failed", error="Book file path is missing.")
@@ -48,7 +51,7 @@ class EmbeddingsService:
         self._write_embeddings_file(book_id, status="pending")
 
         try:
-            text = self._extract_book_text(Path(file_path), file_format=record.get("format"), preserve_format=True)
+            text = self._extract_book_text(Path(file_path), file_format=record.format, preserve_format=True)
             chunks = self._chunk_text_words(text)
 
             embeddings = self._embed_chunks([c["text"] for c in chunks])

@@ -1,45 +1,63 @@
 import json
 import re
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 from html import unescape
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from app.schemas.books import BookDetails, BookListItem
+from app.models.book import Book
+from app.repositories.books_repository import BooksRepository
 
 
 class BookService:
     def __init__(
         self,
-        metadata_path: Optional[Path] = None,
+        repo: BooksRepository,
         uploads_dir: Optional[Path] = None,
     ) -> None:
         root = Path(__file__).resolve().parents[2]
-        self.metadata_path = metadata_path or root / "data" / "books.json"
+        self.repo = repo
         self.uploads_dir = uploads_dir or root / "uploads"
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
 
     def list_books(self) -> List[BookListItem]:
-        records = self._load_metadata()
-        return [BookListItem(**self._to_public_record(record)) for record in records]
+        rows = self.repo.list_books()
+        return [
+            BookListItem(
+                id=row.id,
+                title=row.title,
+                author=row.author,
+                format=row.format,
+                progress_percent=None,
+            )
+            for row in rows
+        ]
 
     def get_book(self, book_id: str) -> BookDetails:
-        record = self._find_record(book_id)
-        return BookDetails(**self._to_public_record(record))
+        row = self.repo.get_book(book_id)
+        if row is None:
+            raise ValueError(f"Book {book_id} not found.")
+        return BookDetails(
+            id=row.id,
+            title=row.title,
+            author=row.author,
+            description=row.description,
+            language=row.language,
+            format=row.format,
+            page_count=row.page_count,
+            word_count=row.word_count,
+            total_chunks=row.total_chunks,
+            created_at=row.created_at,
+        )
 
     def read_book(self, book_id: str) -> tuple[str, int, int]:
-        record = self._find_record(book_id)
-        file_path = record.get("file_path")
-        if not file_path:
-            raise ValueError("Book file path is missing.")
-        file_format = record.get("format") or self._detect_format(Path(file_path))
-        text, _page_count = self._extract_text(
-            Path(file_path),
-            file_format,
-            preserve_format=True,
-        )
+        row = self.repo.get_book(book_id)
+        if row is None:
+            raise ValueError(f"Book {book_id} not found.")
+        text, _page_count = self._extract_text(Path(row.file_path), row.format, preserve_format=True)
         word_count = self._count_words(text)
         total_chunks = self._count_chunks(text)
         return text, word_count, total_chunks
@@ -57,37 +75,29 @@ class BookService:
             raise FileNotFoundError(f"File not found: {file_path}")
 
         file_format = self._detect_format(source_path)
-        book_id = uuid4().hex
+        book_id = __import__("uuid").uuid4().hex
         destination = self.uploads_dir / f"{book_id}{source_path.suffix.lower()}"
-        shutil.copyfile(source_path, destination)
+        __import__("shutil").copyfile(source_path, destination)
 
-        text, page_count = self._extract_text(
-            destination,
-            file_format,
-            preserve_format=False,
-        )
+        text, page_count = self._extract_text(destination, file_format, preserve_format=False)
         word_count = self._count_words(text)
         total_chunks = self._count_chunks(text)
 
-        record: Dict[str, Any] = {
-            "id": book_id,
-            "title": title,
-            "author": author,
-            "description": description,
-            "language": language,
-            "format": file_format,
-            "page_count": page_count,
-            "word_count": word_count,
-            "total_chunks": total_chunks,
-            "created_at": datetime.utcnow().isoformat(),
-            "file_path": str(destination),
-        }
-
-        records = self._load_metadata()
-        records.append(record)
-        self._save_metadata(records)
-
-        return BookDetails(**self._to_public_record(record))
+        row = Book(
+            id=book_id,
+            title=title,
+            author=author,
+            description=description,
+            language=language,
+            format=file_format,
+            page_count=page_count,
+            word_count=word_count,
+            total_chunks=total_chunks,
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+            file_path=str(destination),
+        )
+        row = self.repo.create_book(row)
+        return self.get_book(row.id)
 
     def _detect_format(self, source_path: Path) -> str:
         suffix = source_path.suffix.lower()
