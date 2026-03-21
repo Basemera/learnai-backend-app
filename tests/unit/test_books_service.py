@@ -1,18 +1,43 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from app.models.book import Book
 from app.services.books_service import BookService
 
 
-def test_upload_book_persists_metadata(tmp_path: Path) -> None:
-    metadata_path = tmp_path / "data" / "books.json"
+class FakeBooksRepository:
+    """In-memory repository for unit-testing BookService without a real DB."""
+
+    def __init__(self) -> None:
+        self._books: dict[str, Book] = {}
+
+    def list_books(self) -> list[Book]:
+        return list(self._books.values())
+
+    def get_book(self, book_id: str) -> Book | None:
+        return self._books.get(book_id)
+
+    def create_book(self, book: Book) -> Book:
+        self._books[book.id] = book
+        return book
+
+
+def _make_service(tmp_path: Path) -> BookService:
     uploads_dir = tmp_path / "uploads"
+    repo: Any = FakeBooksRepository()
+    return BookService(repo=repo, uploads_dir=uploads_dir)
+
+
+def test_upload_book_persists_record(tmp_path: Path) -> None:
     source = tmp_path / "sample.pdf"
     source.write_bytes(b"%PDF-1.4 fake content")
 
-    service = BookService(metadata_path=metadata_path, uploads_dir=uploads_dir)
-    service._extract_pdf_text = (  # type: ignore[assignment]
+    service = _make_service(tmp_path)
+    service._extract_pdf_text = (  # type: ignore[method-assign]
         lambda path, preserve_format=False: ("hello world", 3)
     )
 
@@ -25,18 +50,18 @@ def test_upload_book_persists_metadata(tmp_path: Path) -> None:
 
     assert details.title == "Sample Book"
     assert details.page_count == 3
-    assert metadata_path.exists()
+    assert details.id
+    # File should be copied into uploads_dir
+    uploads_dir = tmp_path / "uploads"
     assert any(uploads_dir.iterdir())
 
 
 def test_list_and_get_books(tmp_path: Path) -> None:
-    metadata_path = tmp_path / "data" / "books.json"
-    uploads_dir = tmp_path / "uploads"
     source = tmp_path / "sample.epub"
     source.write_bytes(b"fake epub")
 
-    service = BookService(metadata_path=metadata_path, uploads_dir=uploads_dir)
-    service._extract_epub_text = (  # type: ignore[assignment]
+    service = _make_service(tmp_path)
+    service._extract_epub_text = (  # type: ignore[method-assign]
         lambda path, preserve_format=False: ("word " * 50, None)
     )
 
@@ -50,25 +75,21 @@ def test_list_and_get_books(tmp_path: Path) -> None:
 
 
 def test_upload_book_rejects_unsupported_format(tmp_path: Path) -> None:
-    metadata_path = tmp_path / "data" / "books.json"
-    uploads_dir = tmp_path / "uploads"
     source = tmp_path / "sample.txt"
     source.write_text("plain")
 
-    service = BookService(metadata_path=metadata_path, uploads_dir=uploads_dir)
+    service = _make_service(tmp_path)
 
     with pytest.raises(ValueError):
         service.upload_book(file_path=str(source), title="Nope")
 
 
 def test_read_book_returns_text_counts(tmp_path: Path) -> None:
-    metadata_path = tmp_path / "data" / "books.json"
-    uploads_dir = tmp_path / "uploads"
     source = tmp_path / "sample.pdf"
     source.write_bytes(b"%PDF-1.4 fake content")
 
-    service = BookService(metadata_path=metadata_path, uploads_dir=uploads_dir)
-    service._extract_pdf_text = (  # type: ignore[assignment]
+    service = _make_service(tmp_path)
+    service._extract_pdf_text = (  # type: ignore[method-assign]
         lambda path, preserve_format=False: ("one two three four", 2)
     )
 

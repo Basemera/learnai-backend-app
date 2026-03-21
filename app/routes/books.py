@@ -1,29 +1,35 @@
+from __future__ import annotations
+
 import shutil
 import tempfile
 from pathlib import Path
-from typing import List, Optional
-from app.repositories.books_repository import BooksRepository
+
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, BackgroundTasks, Depends
-
-from app.schemas.books import BookDetails, BookListItem, BookReadResponse
-from app.services.books_service import BookService, get_books_service
-from app.services.embedding_service import EmbeddingsService, get_embeddings_service
 from app.db import get_db
+from app.repositories.books_repository import BooksRepository
+from app.repositories.embeddings_repository import EmbeddingsRepository
+from app.schemas.books import BookDetails, BookListItem, BookReadResponse
+from app.services.books_service import BookService
+from app.services.embedding_service import EmbeddingsService
 
 router = APIRouter(prefix="/books", tags=["books"])
+
 
 def get_book_service(db: Session = Depends(get_db)) -> BookService:
     repo = BooksRepository(db)
     return BookService(repo=repo)
 
-def get_embedding_service(db: Session = Depends(get_db)) -> EmbeddingsService:
-    repo = BooksRepository(db)
-    return EmbeddingsService(repo=repo)
 
-@router.get("/", response_model=List[BookListItem])
-def get_book(service: BookService = Depends(get_book_service)) -> List[BookListItem]:
+def get_embedding_service(db: Session = Depends(get_db)) -> EmbeddingsService:
+    books_repo = BooksRepository(db)
+    embeddings_repo = EmbeddingsRepository(db)
+    return EmbeddingsService(books_repo=books_repo, embeddings_repo=embeddings_repo)
+
+
+@router.get("/", response_model=list[BookListItem])
+def get_book(service: BookService = Depends(get_book_service)) -> list[BookListItem]:
     return service.list_books()
 
 
@@ -56,9 +62,9 @@ def upload_book(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     title: str = Form(...),
-    author: Optional[str] = Form(None),
-    language: Optional[str] = Form(None),
-    description: Optional[str] = Form(None),
+    author: str | None = Form(None),
+    language: str | None = Form(None),
+    description: str | None = Form(None),
     service: BookService = Depends(get_book_service),
     embedding_service: EmbeddingsService = Depends(get_embedding_service),
 ) -> BookDetails:
@@ -84,4 +90,3 @@ def upload_book(
     finally:
         if temp_path:
             Path(temp_path).unlink(missing_ok=True)
-
