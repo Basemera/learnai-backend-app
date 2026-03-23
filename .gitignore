@@ -21,3 +21,4 @@ pr_description.md
 data/
 uploads/
 *.pdf
+*venv/

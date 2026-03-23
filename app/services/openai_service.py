@@ -1,6 +1,8 @@
 import os
+import logging
 from typing import Optional, List
 
+logger = logging.getLogger(__name__)
 
 class OpenAIService:
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini") -> None:
@@ -166,10 +168,16 @@ class OpenAIService:
     
     def embed_texts(self, texts: List[str], model: str = "text-embedding-3-small") -> List[List[float]]:
         if not texts:
+            logger.warning("embed_texts called with empty texts list.")
             return []
-        response = self.client.embeddings.create(model=model, input=texts)
+        response = []
+        try:
+            response = self.client.embeddings.create(model=model, input=texts)
+        except Exception as exc:
+            logger.error(f"Error calling OpenAI embeddings API: {exc}")
+            raise ValueError("Failed to get embeddings from OpenAI.") from exc
         # response.data is list of {embedding: [...]}
-        return [item.embedding for item in response.data]
+        return [item.embedding for item in response.data if response and hasattr(response, "data")]
 
 
 _service: Optional[OpenAIService] = None

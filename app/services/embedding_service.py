@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +16,7 @@ from app.services.openai_service import get_openai_service
 # OpenAI provider identifier stored in the embedding_models table
 _OPENAI_PROVIDER = "openai"
 
+logger = logging.getLogger(__name__)
 
 class EmbeddingsService:
     def __init__(
