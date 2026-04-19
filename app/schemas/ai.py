@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -66,9 +66,9 @@ class ExplainKeyTerm(BaseModel):
 class ExplainPayload(BaseModel):
     one_sentence_summary: str
     bullet_points: list[str]
-    key_terms: list[ExplainKeyTerm] | None = None
-    example: str | None = None
-    check_understanding: list[str] | None = None
+    key_terms: Optional[list[ExplainKeyTerm]] = None
+    example: Optional[str] = None
+    check_understanding: Optional[list[str]] = None
 
 
 class ExplainResponse(BaseModel):

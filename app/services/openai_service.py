@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from typing import Any, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class OpenAIService:
             model=self.model,
             input=prompt,
         )
-        output_text = getattr(response, "output_text", None)
+        output_text = cast(Optional[str], getattr(response, "output_text", None))
         if not output_text:
             raise ValueError("OpenAI response contained no output_text.")
         return output_text
@@ -172,14 +172,15 @@ class OpenAIService:
         if not texts:
             logger.warning("embed_texts called with empty texts list.")
             return []
-        response = []
         try:
-            response = self.client.embeddings.create(model=model, input=texts)
+            response: Any = self.client.embeddings.create(model=model, input=texts)
         except Exception as exc:
             logger.error(f"Error calling OpenAI embeddings API: {exc}")
             raise ValueError("Failed to get embeddings from OpenAI.") from exc
-        # response.data is list of {embedding: [...]}
-        return [item.embedding for item in response.data if response and hasattr(response, "data")]
+        data = getattr(response, "data", None)
+        if data is None:
+            raise ValueError("OpenAI embeddings response contained no data.")
+        return [item.embedding for item in data]
 
 
 _service: Optional[OpenAIService] = None

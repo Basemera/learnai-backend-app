@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 import tempfile
 from pathlib import Path
 
@@ -72,7 +71,7 @@ def upload_book(
     temp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
-            shutil.copyfileobj(file.file, temp_file)
+            temp_file.write(file.file.read())
             temp_path = temp_file.name
         details = service.upload_book(
             file_path=temp_path,

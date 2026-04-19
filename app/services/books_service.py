@@ -228,13 +228,3 @@ class BookService:
             if index < len(words):
                 index -= overlap
         return total
-
-
-_service: Optional[BookService] = None
-
-
-def get_books_service() -> BookService:
-    global _service
-    if _service is None:
-        _service = BookService()
-    return _service

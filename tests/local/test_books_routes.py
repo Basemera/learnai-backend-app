@@ -28,10 +28,13 @@ class DummyBooksService:
             id=book_id,
             title="Test Book",
             author="A. Writer",
+            description=None,
+            language=None,
             format="pdf",
             page_count=10,
             word_count=1000,
             total_chunks=3,
+            created_at=None,
         )
 
     def read_book(self, book_id: str) -> tuple[str, int, int]:
@@ -51,9 +54,13 @@ class DummyBooksService:
             id="book_2",
             title=title,
             author=author,
-            language=language,
             description=description,
+            language=language,
             format="pdf",
+            page_count=None,
+            word_count=None,
+            total_chunks=None,
+            created_at=None,
         )
 
 
