@@ -69,7 +69,12 @@ class BookEmbeddingJob(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     chunk_size_words: Mapped[int] = mapped_column(Integer, nullable=False)
     overlap_words: Mapped[int] = mapped_column(Integer, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=_utcnow, onupdate=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=_utcnow,
+        onupdate=_utcnow,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=_utcnow)
 
 

@@ -1,8 +1,9 @@
-import os
 import logging
-from typing import Optional, List
+import os
+from typing import Optional
 
 logger = logging.getLogger(__name__)
+
 
 class OpenAIService:
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini") -> None:
@@ -59,9 +60,7 @@ class OpenAIService:
             "User text:\n"
             f"{text}"
         )
-        
-        
-        
+
     def simplify_text(
         self,
         text: str,
@@ -165,8 +164,12 @@ class OpenAIService:
             include_questions=include_questions,
         )
         return self._call_model(prompt)
-    
-    def embed_texts(self, texts: List[str], model: str = "text-embedding-3-small") -> List[List[float]]:
+
+    def embed_texts(
+        self,
+        texts: list[str],
+        model: str = "text-embedding-3-small",
+    ) -> list[list[float]]:
         if not texts:
             logger.warning("embed_texts called with empty texts list.")
             return []
@@ -190,4 +193,3 @@ def get_openai_service() -> OpenAIService:
     if _service is None:
         _service = OpenAIService()
     return _service
-
