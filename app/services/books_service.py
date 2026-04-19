@@ -135,11 +135,14 @@ class BookService:
             for page_number, page in enumerate(pdf.pages, start=1):
                 if preserve_format:
                     try:
-                        page_text = page.extract_text(
-                            layout=True,
-                            x_tolerance=2,
-                            y_tolerance=2,
-                        ) or ""
+                        page_text = (
+                            page.extract_text(
+                                layout=True,
+                                x_tolerance=2,
+                                y_tolerance=2,
+                            )
+                            or ""
+                        )
                     except TypeError:
                         page_text = page.extract_text() or ""
                     if self._looks_unspaced(page_text):
@@ -225,6 +228,7 @@ class BookService:
             if index < len(words):
                 index -= overlap
         return total
+
 
 _service: Optional[BookService] = None
 

@@ -138,7 +138,6 @@ class OpenAIService:
             f"{safe_text}"
         )
 
-
     def explain_text(
         self,
         text: str,
@@ -184,8 +183,6 @@ class OpenAIService:
 
 
 _service: Optional[OpenAIService] = None
-
-
 
 
 def get_openai_service() -> OpenAIService:

@@ -95,6 +95,7 @@ GradeLevel = Literal["elementary", "middle_school", "high_school", "college"]
 Tone = Literal["clear", "friendly", "formal"]
 OutputFormat = Literal["structured_json", "bullets", "paragraph"]
 
+
 class SimplifyRequest(BaseModel):
     text: str = Field(..., min_length=1, description="User-provided text.")
 
