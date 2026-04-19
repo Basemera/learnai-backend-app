@@ -57,9 +57,14 @@ class DummyBooksService:
         )
 
 
-def test_get_books_list(monkeypatch) -> None:
+class DummyEmbeddingService:
+    def index_book(self, book_id: str) -> None:
+        self.book_id = book_id
+
+
+def test_get_books_list() -> None:
     dummy = DummyBooksService()
-    monkeypatch.setattr(books_routes, "get_books_service", lambda: dummy)
+    app.dependency_overrides[books_routes.get_book_service] = lambda: dummy
     client = TestClient(app)
 
     response = client.get("/books/")
@@ -68,22 +73,24 @@ def test_get_books_list(monkeypatch) -> None:
     payload = response.json()
     assert payload[0]["id"] == "book_1"
     assert payload[0]["title"] == "Test Book"
+    app.dependency_overrides.clear()
 
 
-def test_get_book_details(monkeypatch) -> None:
+def test_get_book_details() -> None:
     dummy = DummyBooksService()
-    monkeypatch.setattr(books_routes, "get_books_service", lambda: dummy)
+    app.dependency_overrides[books_routes.get_book_service] = lambda: dummy
     client = TestClient(app)
 
     response = client.get("/books/book_1")
 
     assert response.status_code == 200
     assert response.json()["id"] == "book_1"
+    app.dependency_overrides.clear()
 
 
-def test_read_book(monkeypatch) -> None:
+def test_read_book() -> None:
     dummy = DummyBooksService()
-    monkeypatch.setattr(books_routes, "get_books_service", lambda: dummy)
+    app.dependency_overrides[books_routes.get_book_service] = lambda: dummy
     client = TestClient(app)
 
     response = client.post("/books/book_1/read")
@@ -95,11 +102,14 @@ def test_read_book(monkeypatch) -> None:
         "word_count": 1,
         "total_chunks": 1,
     }
+    app.dependency_overrides.clear()
 
 
-def test_upload_book(monkeypatch) -> None:
+def test_upload_book() -> None:
     dummy = DummyBooksService()
-    monkeypatch.setattr(books_routes, "get_books_service", lambda: dummy)
+    embedding_dummy = DummyEmbeddingService()
+    app.dependency_overrides[books_routes.get_book_service] = lambda: dummy
+    app.dependency_overrides[books_routes.get_embedding_service] = lambda: embedding_dummy
     client = TestClient(app)
 
     response = client.post(
@@ -112,3 +122,4 @@ def test_upload_book(monkeypatch) -> None:
     assert response.json()["title"] == "Upload Book"
     assert dummy.last_file_path is not None
     assert not Path(dummy.last_file_path).exists()
+    app.dependency_overrides.clear()

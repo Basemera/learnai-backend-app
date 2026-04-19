@@ -1,15 +1,12 @@
-import json
 import re
-import shutil
 from datetime import datetime, timezone
 from html import unescape
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from uuid import uuid4
+from typing import Any, Optional
 
-from app.schemas.books import BookDetails, BookListItem
 from app.models.book import Book
 from app.repositories.books_repository import BooksRepository
+from app.schemas.books import BookDetails, BookListItem
 
 
 class BookService:
@@ -23,7 +20,7 @@ class BookService:
         self.uploads_dir = uploads_dir or root / "uploads"
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
 
-    def list_books(self) -> List[BookListItem]:
+    def list_books(self) -> list[BookListItem]:
         rows = self.repo.list_books()
         return [
             BookListItem(
@@ -57,7 +54,11 @@ class BookService:
         row = self.repo.get_book(book_id)
         if row is None:
             raise ValueError(f"Book {book_id} not found.")
-        text, _page_count = self._extract_text(Path(row.file_path), row.format, preserve_format=True)
+        text, _page_count = self._extract_text(
+            Path(row.file_path),
+            row.format,
+            preserve_format=True,
+        )
         word_count = self._count_words(text)
         total_chunks = self._count_chunks(text)
         return text, word_count, total_chunks
@@ -119,13 +120,17 @@ class BookService:
             return self._extract_epub_text(path, preserve_format=preserve_format)
         raise ValueError("Unsupported format.")
 
-    def _extract_pdf_text(self, path: Path, preserve_format: bool = False) -> tuple[str, Optional[int]]:
+    def _extract_pdf_text(
+        self,
+        path: Path,
+        preserve_format: bool = False,
+    ) -> tuple[str, Optional[int]]:
         try:
             import pdfplumber
         except ImportError as exc:
             raise ValueError("pdfplumber is required to extract PDF text.") from exc
 
-        texts: List[str] = []
+        texts: list[str] = []
         with pdfplumber.open(path) as pdf:
             for page_number, page in enumerate(pdf.pages, start=1):
                 if preserve_format:
@@ -146,14 +151,18 @@ class BookService:
             page_count = len(pdf.pages)
         return "\n".join(texts).strip(), page_count
 
-    def _extract_epub_text(self, path: Path, preserve_format: bool = False) -> tuple[str, Optional[int]]:
+    def _extract_epub_text(
+        self,
+        path: Path,
+        preserve_format: bool = False,
+    ) -> tuple[str, Optional[int]]:
         try:
             from ebooklib import ITEM_DOCUMENT, epub
         except ImportError as exc:
             raise ValueError("ebooklib is required to extract EPUB text.") from exc
 
         book = epub.read_epub(str(path))
-        texts: List[str] = []
+        texts: list[str] = []
         for item in book.get_items_of_type(ITEM_DOCUMENT):
             content = item.get_content().decode("utf-8", errors="ignore")
             if preserve_format:
@@ -177,7 +186,7 @@ class BookService:
         words = page.extract_words(use_text_flow=True)
         if not words:
             return ""
-        lines: List[List[dict]] = []
+        lines: list[list[dict]] = []
         for word in words:
             if not lines:
                 lines.append([word])
@@ -216,38 +225,6 @@ class BookService:
             if index < len(words):
                 index -= overlap
         return total
-
-    def _load_metadata(self) -> List[Dict[str, Any]]:
-        if not self.metadata_path.exists():
-            return []
-        with self.metadata_path.open("r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        if not isinstance(data, list):
-            raise ValueError("books.json must contain a list.")
-        return data
-
-    def _save_metadata(self, records: List[Dict[str, Any]]) -> None:
-        self.metadata_path.parent.mkdir(parents=True, exist_ok=True)
-        with self.metadata_path.open("w", encoding="utf-8") as handle:
-            json.dump(records, handle, indent=2, sort_keys=True)
-
-    def _find_record(self, book_id: str) -> Dict[str, Any]:
-        records = self._load_metadata()
-        for record in records:
-            if record.get("id") == book_id:
-                return record
-        raise ValueError(f"Book {book_id} not found.")
-
-    def _to_public_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
-        if record.get("created_at"):
-            try:
-                record = dict(record)
-                record["created_at"] = datetime.fromisoformat(record["created_at"])
-            except ValueError:
-                pass
-        record.pop("file_path", None)
-        return record
-
 
 _service: Optional[BookService] = None
 

@@ -1,4 +1,5 @@
-from typing import List, Literal, Optional
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -47,8 +48,14 @@ class ExplainRequest(BaseModel):
     )
     max_bullets: int = Field(6, ge=1, le=20, description="Maximum number of bullet points.")
     include_examples: bool = Field(True, description="Whether to include an example.")
-    include_key_terms: bool = Field(True, description="Whether to include key terms definitions.")
-    include_questions: bool = Field(True, description="Whether to include check-understanding questions.")
+    include_key_terms: bool = Field(
+        True,
+        description="Whether to include key terms definitions.",
+    )
+    include_questions: bool = Field(
+        True,
+        description="Whether to include check-understanding questions.",
+    )
 
 
 class ExplainKeyTerm(BaseModel):
@@ -58,14 +65,30 @@ class ExplainKeyTerm(BaseModel):
 
 class ExplainPayload(BaseModel):
     one_sentence_summary: str
-    bullet_points: List[str]
-    key_terms: Optional[List[ExplainKeyTerm]] = None
-    example: Optional[str] = None
-    check_understanding: Optional[List[str]] = None
+    bullet_points: list[str]
+    key_terms: list[ExplainKeyTerm] | None = None
+    example: str | None = None
+    check_understanding: list[str] | None = None
 
 
 class ExplainResponse(BaseModel):
     result: ExplainPayload
+
+
+class SimplifyKeyTerm(BaseModel):
+    term: str
+    definition: str
+
+
+class SimplifyPayload(BaseModel):
+    simplified: str
+    bullets: list[str]
+    key_terms: list[SimplifyKeyTerm]
+    notes: str
+
+
+class SimplifyResponse(BaseModel):
+    result: SimplifyPayload
 
 
 GradeLevel = Literal["elementary", "middle_school", "high_school", "college"]
