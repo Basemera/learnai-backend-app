@@ -9,7 +9,7 @@ exclude = ["venv", ".venv", "__pycache__"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP"]
-ignore = ["B008"]
+ignore = ["B008", "UP007"]
 
 [tool.ruff.format]
 quote-style = "double"

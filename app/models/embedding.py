@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
@@ -66,7 +67,7 @@ class BookEmbeddingJob(Base):
         String, ForeignKey("embedding_models.id"), nullable=False
     )
     status: Mapped[str] = mapped_column(String(16), nullable=False)
-    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     chunk_size_words: Mapped[int] = mapped_column(Integer, nullable=False)
     overlap_words: Mapped[int] = mapped_column(Integer, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
