@@ -20,12 +20,18 @@ def test_book_list_item_accepts_valid_payload() -> None:
 
 def test_book_list_item_rejects_empty_title() -> None:
     with pytest.raises(ValidationError):
-        BookListItem(id="book_1", title="")
+        BookListItem(id="book_1", title="", author=None, format=None, progress_percent=None)
 
 
 def test_book_list_item_rejects_progress_out_of_range() -> None:
     with pytest.raises(ValidationError):
-        BookListItem(id="book_1", title="Valid", progress_percent=120)
+        BookListItem(
+            id="book_1",
+            title="Valid",
+            author=None,
+            format=None,
+            progress_percent=120,
+        )
 
 
 def test_book_details_accepts_valid_payload() -> None:
@@ -46,4 +52,15 @@ def test_book_details_accepts_valid_payload() -> None:
 
 def test_book_details_rejects_short_language_code() -> None:
     with pytest.raises(ValidationError):
-        BookDetails(id="book_1", title="Valid", language="e")
+        BookDetails(
+            id="book_1",
+            title="Valid",
+            author=None,
+            description=None,
+            language="e",
+            format=None,
+            page_count=None,
+            word_count=None,
+            total_chunks=None,
+            created_at=None,
+        )

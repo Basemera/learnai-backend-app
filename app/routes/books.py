@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import shutil
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
@@ -62,9 +62,9 @@ def upload_book(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     title: str = Form(...),
-    author: str | None = Form(None),
-    language: str | None = Form(None),
-    description: str | None = Form(None),
+    author: Optional[str] = Form(None),
+    language: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
     service: BookService = Depends(get_book_service),
     embedding_service: EmbeddingsService = Depends(get_embedding_service),
 ) -> BookDetails:
@@ -72,7 +72,7 @@ def upload_book(
     temp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
-            shutil.copyfileobj(file.file, temp_file)
+            temp_file.write(file.file.read())
             temp_path = temp_file.name
         details = service.upload_book(
             file_path=temp_path,

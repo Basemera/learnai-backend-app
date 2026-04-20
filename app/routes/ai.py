@@ -6,17 +6,17 @@ from app.schemas.ai import (
     ExplainPayload,
     ExplainRequest,
     ExplainResponse,
-    TextRequest,
-    TextResponse,
+    SimplifyPayload,
     SimplifyRequest,
+    SimplifyResponse,
 )
 from app.services.openai_service import get_openai_service
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 
-@router.post("/simplify", response_model=TextResponse)
-def simplify_text(payload: SimplifyRequest) -> TextResponse:
+@router.post("/simplify", response_model=SimplifyResponse)
+def simplify_text(payload: SimplifyRequest) -> SimplifyResponse:
     service = get_openai_service()
     try:
         raw = service.simplify_text(
@@ -29,10 +29,24 @@ def simplify_text(payload: SimplifyRequest) -> TextResponse:
             define_key_terms=payload.define_key_terms,
             max_definitions=payload.max_definitions,
         )
-        result = (raw or "").strip()
-        if not result:
-            raise HTTPException(status_code=502, detail="AI returned an empty response for simplify.")
-        return TextResponse(result=result)
+
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="AI returned invalid JSON for simplify.",
+            ) from exc
+
+        try:
+            parsed = SimplifyPayload.model_validate(data)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="AI returned JSON that does not match the expected simplify schema.",
+            ) from exc
+
+        return SimplifyResponse(result=parsed)
     except ValueError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except HTTPException:

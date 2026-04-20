@@ -1,8 +1,9 @@
-import os
 import logging
-from typing import Optional, List
+import os
+from typing import Any, Optional, cast
 
 logger = logging.getLogger(__name__)
+
 
 class OpenAIService:
     def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini") -> None:
@@ -22,7 +23,7 @@ class OpenAIService:
             model=self.model,
             input=prompt,
         )
-        output_text = getattr(response, "output_text", None)
+        output_text = cast(Optional[str], getattr(response, "output_text", None))
         if not output_text:
             raise ValueError("OpenAI response contained no output_text.")
         return output_text
@@ -59,9 +60,7 @@ class OpenAIService:
             "User text:\n"
             f"{text}"
         )
-        
-        
-        
+
     def simplify_text(
         self,
         text: str,
@@ -139,7 +138,6 @@ class OpenAIService:
             f"{safe_text}"
         )
 
-
     def explain_text(
         self,
         text: str,
@@ -165,24 +163,27 @@ class OpenAIService:
             include_questions=include_questions,
         )
         return self._call_model(prompt)
-    
-    def embed_texts(self, texts: List[str], model: str = "text-embedding-3-small") -> List[List[float]]:
+
+    def embed_texts(
+        self,
+        texts: list[str],
+        model: str = "text-embedding-3-small",
+    ) -> list[list[float]]:
         if not texts:
             logger.warning("embed_texts called with empty texts list.")
             return []
-        response = []
         try:
-            response = self.client.embeddings.create(model=model, input=texts)
+            response: Any = self.client.embeddings.create(model=model, input=texts)
         except Exception as exc:
             logger.error(f"Error calling OpenAI embeddings API: {exc}")
             raise ValueError("Failed to get embeddings from OpenAI.") from exc
-        # response.data is list of {embedding: [...]}
-        return [item.embedding for item in response.data if response and hasattr(response, "data")]
+        data = getattr(response, "data", None)
+        if data is None:
+            raise ValueError("OpenAI embeddings response contained no data.")
+        return [item.embedding for item in data]
 
 
 _service: Optional[OpenAIService] = None
-
-
 
 
 def get_openai_service() -> OpenAIService:
@@ -190,4 +191,3 @@ def get_openai_service() -> OpenAIService:
     if _service is None:
         _service = OpenAIService()
     return _service
-
