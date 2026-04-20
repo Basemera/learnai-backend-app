@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
@@ -61,9 +62,9 @@ def upload_book(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     title: str = Form(...),
-    author: str | None = Form(None),
-    language: str | None = Form(None),
-    description: str | None = Form(None),
+    author: Optional[str] = Form(None),
+    language: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
     service: BookService = Depends(get_book_service),
     embedding_service: EmbeddingsService = Depends(get_embedding_service),
 ) -> BookDetails:

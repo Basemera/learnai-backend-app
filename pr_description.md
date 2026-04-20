@@ -6,6 +6,7 @@
 - update local and unit tests to match the current route behavior and dependency injection
 - fix repo-wide CI issues across Ruff, Black, mypy, and pytest
 - preserve Python 3.9 compatibility for SQLAlchemy model annotations while keeping the lint config aligned with that runtime target
+- replace remaining FastAPI route parameter unions that still broke import-time annotation evaluation on Python 3.9
 
 # Testing
 
